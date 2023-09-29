@@ -9,7 +9,10 @@ export async function joinedFromNowhere(state: VoiceState) {
     const vcRole = rolesMap.get(state.channelId);
 
     if (!vcRole) {
-        const role = await state.guild.roles.create({ name: createRoleName(state.channel) });
+        const role = await state.guild.roles.create({
+            name: createRoleName(state.channel),
+            mentionable: true
+        });
         state.member.roles.add(role);
         rolesMap.set(state.channelId, new VCRole(state.channelId, role.id));
         saveRolesMap(rolesMap, state.guild.id);

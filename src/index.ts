@@ -40,7 +40,10 @@ client.once('ready', (c) => {
 
             let vcRole = rolesMap.get(voiceChannel.id);
             if (!vcRole) {
-                const role = await guild.roles.create({ name: createRoleName(voiceChannel) });
+                const role = await guild.roles.create({
+                    name: createRoleName(voiceChannel),
+                    mentionable: true
+                });
                 vcRole = new VCRole(voiceChannel.id, role.id);
 
                 rolesMap.set(voiceChannel.id, vcRole);
