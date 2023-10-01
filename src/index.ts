@@ -23,7 +23,7 @@ client.once('ready', (c) => {
         for (const vcRole of rolesMap.values()) {
             const channel = guild.channels.cache.find((channel) => channel.id === vcRole.channelId);
             if(channel) continue;
-
+            
             const role = guild.roles.cache.find((role) => role.id === vcRole.roleId);
             if (!role) continue;
 
@@ -47,7 +47,6 @@ client.once('ready', (c) => {
                 vcRole = new VCRole(voiceChannel.id, role.id);
 
                 rolesMap.set(voiceChannel.id, vcRole);
-                saveRolesMap(rolesMap, guild.id);
             }
 
             const role = voiceChannel.guild.roles.cache.find((role) => role.id === vcRole?.roleId);
@@ -57,6 +56,7 @@ client.once('ready', (c) => {
                 member.roles.add(role);
             });
         }
+        saveRolesMap(rolesMap, guild.id);
     });
 });
 
