@@ -34,13 +34,14 @@ client.once('ready', (c) => {
                 continue;
             }
 
-            const voiceChannel = channel as VoiceBasedChannel;
-
             const roleMemberIds: string[] = [];
             role.members.forEach((member) => roleMemberIds.push(member.id));
+            console.log(roleMemberIds);
 
             const channelMemberIds: string[] = [];
             channel.members.forEach((member) => channelMemberIds.push(member.id));
+            console.log(channelMemberIds);
+            
             console.log(roleMemberIds.filter((roleMemId) => !channelMemberIds.includes(roleMemId)));
         }
 
