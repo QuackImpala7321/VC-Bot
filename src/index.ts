@@ -42,7 +42,12 @@ client.once('ready', (c) => {
             channel.members.forEach((member) => channelMemberIds.push(member.id));
             console.log(channelMemberIds);
             
-            console.log(roleMemberIds.filter((roleMemId) => !channelMemberIds.includes(roleMemId)));
+            const differenceIds = channelMemberIds.filter((channelMemId) => !roleMemberIds.includes(channelMemId));
+            for (const id of differenceIds) {
+                const member = guild.members.cache.find((member) => member.id === id);
+                if (!member) throw new Error("Could not find member.");
+                member.roles.remove(role);
+            }
         }
 
         const dataVoiceChannels = guild.channels.cache.filter((channel) => channel.isVoiceBased() && iterableContains(rolesMap.keys(), channel.id));
