@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, Client, IntentsBitField, VoiceBasedChannel } from "discord.js";
+import { ChatInputCommandInteraction, Client, Collection, IntentsBitField, VoiceBasedChannel } from "discord.js";
 import { config } from "./config";
 import { commands, getCommands } from "./commands/index";
 import { joinedFromNowhere, joinedFromChannel, leftChannel } from "./state-change";
@@ -19,23 +19,27 @@ client.once('ready', (c) => {
     console.log(`${c.user.tag} is now online.`);
 
     client.guilds.cache.forEach(async (guild) => {
-        const rolesMap = getRolesMap(guild.id);
-        for (const vcRole of rolesMap.values()) {
-            const channel = guild.channels.cache.find((channel) => channel.id === vcRole.channelId);
-            if(channel) continue;
-            
-            const role = guild.roles.cache.find((role) => role.id === vcRole.roleId);
-            if (!role) continue;
-
-            guild.roles.delete(role);
-        }
-        
         for (const command of commands.values()) {
             guild.commands.create(command.data);
         }
+        
+        const rolesMap = getRolesMap(guild.id);
+        for (const vcRole of rolesMap.values()) {
+            const channel = guild.channels.cache.find((channel) => channel.id === vcRole.channelId);
+            const role = guild.roles.cache.find((role) => role.id === vcRole.roleId);
+            if (!role) continue;
 
-        const voiceChannels = guild.channels.cache.filter((channel) => channel.isVoiceBased() && iterableContains(rolesMap.keys(), channel.id));
-        for (const channel of voiceChannels) {
+            if(!(channel && channel.isVoiceBased())) {
+                guild.roles.delete(role);
+                continue;
+            }
+
+            const voiceChannel = channel as VoiceBasedChannel;
+            console.log(role.members.difference(voiceChannel.members));
+        }
+
+        const dataVoiceChannels = guild.channels.cache.filter((channel) => channel.isVoiceBased() && iterableContains(rolesMap.keys(), channel.id));
+        for (const channel of dataVoiceChannels) {
             const voiceChannel = channel[1] as VoiceBasedChannel;
 
             let vcRole = rolesMap.get(voiceChannel.id);
@@ -60,7 +64,7 @@ client.once('ready', (c) => {
     });
 });
 
-function iterableContains(iterable: IterableIterator<any>, value: any) {
+function iterableContains<T>(iterable: IterableIterator<T>, value: T) {
     for (const iterator of iterable) {
         if (iterator === value) {
             return true;
