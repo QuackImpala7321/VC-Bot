@@ -35,7 +35,13 @@ client.once('ready', (c) => {
             }
 
             const voiceChannel = channel as VoiceBasedChannel;
-            console.log(role.members.difference(voiceChannel.members));
+
+            const roleMemberIds: string[] = [];
+            role.members.forEach((member) => roleMemberIds.push(member.id));
+
+            const channelMemberIds: string[] = [];
+            channel.members.forEach((member) => channelMemberIds.push(member.id));
+            console.log(roleMemberIds.filter((roleMemId) => !channelMemberIds.includes(roleMemId)));
         }
 
         const dataVoiceChannels = guild.channels.cache.filter((channel) => channel.isVoiceBased() && iterableContains(rolesMap.keys(), channel.id));
@@ -60,7 +66,9 @@ client.once('ready', (c) => {
                 member.roles.add(role);
             });
         }
-        saveRolesMap(rolesMap, guild.id);
+        if (rolesMap.entries()) {
+            saveRolesMap(rolesMap, guild.id);
+        }
     });
 });
 
