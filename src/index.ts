@@ -22,57 +22,31 @@ client.once('ready', (c) => {
         for (const command of commands.values()) {
             guild.commands.create(command.data);
         }
-        
+
         const rolesMap = getRolesMap(guild.id);
-        for (const vcRole of rolesMap.values()) {
-            const channel = guild.channels.cache.find((channel) => channel.id === vcRole.channelId);
-            const role = guild.roles.cache.find((role) => role.id === vcRole.roleId);
-            if (!role) continue;
+        
+        const populatedVoiceChannels = guild.channels.cache.filter((channel) => channel.isVoiceBased() && channel.members.size > 0);
+        
+        for (const pair of populatedVoiceChannels) {
+            const channel = pair[1] as VoiceBasedChannel;
+            const vcRole = rolesMap.get(channel.id);
+            let role = guild.roles.cache.find((role) => role.id === vcRole?.roleId);
 
-            if(!(channel && channel.isVoiceBased())) {
-                guild.roles.delete(role);
-                continue;
-            }
-
-            const roleMemberIds: string[] = [];
-            role.members.forEach((member) => roleMemberIds.push(member.id));
-            console.log(roleMemberIds);
-
-            const channelMemberIds: string[] = [];
-            channel.members.forEach((member) => channelMemberIds.push(member.id));
-            console.log(channelMemberIds);
-            
-            const differenceIds = channelMemberIds.filter((channelMemId) => !roleMemberIds.includes(channelMemId));
-            for (const id of differenceIds) {
-                const member = guild.members.cache.find((member) => member.id === id);
-                if (!member) throw new Error("Could not find member.");
-                member.roles.remove(role);
-            }
-        }
-
-        const dataVoiceChannels = guild.channels.cache.filter((channel) => channel.isVoiceBased() && iterableContains(rolesMap.keys(), channel.id));
-        for (const channel of dataVoiceChannels) {
-            const voiceChannel = channel[1] as VoiceBasedChannel;
-
-            let vcRole = rolesMap.get(voiceChannel.id);
-            if (!vcRole) {
-                const role = await guild.roles.create({
-                    name: createRoleName(voiceChannel),
+            if (!vcRole || !role) {
+                role = await guild.roles.create({
+                    name: createRoleName(channel),
                     mentionable: true
                 });
-                vcRole = new VCRole(voiceChannel.id, role.id);
+                if (!role) throw new Error("Could not create role");
 
-                rolesMap.set(voiceChannel.id, vcRole);
+                rolesMap.set(channel.id, new VCRole(channel.id, role.id));
             }
 
-            const role = voiceChannel.guild.roles.cache.find((role) => role.id === vcRole?.roleId);
-            if (!role) continue;
-
-            voiceChannel.members.forEach(member => {
-                member.roles.add(role);
-            });
+            const constRole = role;
+            channel.members.forEach((member) => member.roles.add(constRole));
         }
-        if (rolesMap.entries()) {
+
+        if (rolesMap.size > 0) {
             saveRolesMap(rolesMap, guild.id);
         }
     });
