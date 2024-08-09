@@ -3,12 +3,11 @@ import { ChatInputCommandInteraction, Client, Collection, IntentsBitField, Role,
 import { config } from './config'
 import { onJoin, onLeave, onSwitch } from './state-update'
 import { getData, saveData } from './data-handler'
-import { commands, registerCommands, removeOld } from './commands'
+import { commands, registerCommands, removeOldCommands } from './commands'
 
-const testGuild = '837751878359711744'
-
+export const testGuild = '837751878359711744'
 export const rest = new REST().setToken(config.TOKEN)
-const client = new Client({
+export const client = new Client({
     intents: [
         IntentsBitField.Flags.Guilds,
         IntentsBitField.Flags.GuildMessages,
@@ -21,9 +20,10 @@ client.once('ready', async c => {
     await registerCommands()
     
     for (const guild of client.guilds.cache.values()) {
-        await removeOld(guild.id)
+        await removeOldCommands(guild.id)
         for (const command of commands.values())
-            guild.commands.create(command.data)
+            if (!command.canAdd || await command.canAdd(guild))
+                guild.commands.create(command.data)
         
         const data = getData(guild.id)
         let changed = false
@@ -41,17 +41,19 @@ client.once('ready', async c => {
                     channelId: channel.id,
                     roleId: role.id
                 })
-                changed = true
             }
-            for (const member of channel.members.values())
-                member.roles.add(role)
+
+            for (const member of channel.members.values()) {
+                console.log(member.displayName)
+                // member.roles.add(role)                   currently no way to remove!
+            }
         }
         if (changed)
             saveData(guild.id, data)
     }
 })
 
-client.once('roleDelete', async role => {
+client.on('roleDelete', async role => {
     const guildId = role.guild.id
     const data = getData(guildId)
     for (const entry of data.entries()) {
@@ -75,7 +77,7 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
 })
 
 client.on('interactionCreate', async interaction => {
-    if (!interaction.isCommand())
+    if (interaction.applicationId !== config.CLIENT_ID || !interaction.isCommand())
         return
 
     const command = commands.get(interaction.commandName)
